@@ -38,10 +38,10 @@ The HeLiPR-Pointcloud-Toolbox excels with three core functionalities:
 - **Versatile LiDAR Data Processing**: Supports Ouster, Velodyne, Livox, and Aeva LiDAR types in the HeLiPR dataset.
 - **Point Cloud Undistortion**: Implements BsplineSE3 for trajectory interpolation, undistorts point clouds accordingly.
 - **Point Cloud Accumulation**: Accumulates multiple point cloud scans with user-defined thresholds, aiding in place recognition tasks.
+- **Point Cloud Saver**: Save pointcloud with accumulation or undistortion with user-defined distances, aiding in place recognition tasks.
 - **Efficient File Handling**: Reads `.bin` files from different LiDAR types and outputs processed data in `.pcd` format.
-- **Interactive User Experience**: Prompts for input paths and processing parameters for a customized workflow.
+- **Interactive User Experience**: Prompts for input paths and processing parameters for a customized workflow with visual progress tracking such as progress bar and visualizer.
 - **Trajectory Interpolation**: Accurately interpolates trajectory data for precise point cloud mapping.
-- **Visual Progress Tracking**: Includes a progress bar and visualizer for processing stage monitoring.
 
 
 For a README file, the instructions should be clear, concise, and well-structured. Here's how you can rewrite the usage instructions for the HeLiPR-Pointcloud-Toolbox in a README-friendly format:
