@@ -12,7 +12,13 @@ The HeLiPR Pointcloud Toolbox is a sophisticated software suite tailored for pro
   <img src="image/visualizer.png" alt="Visualizer" width="30%" />
 </p>
 
-The HeLiPR-Pointcloud-Toolbox excels with three core functionalities: **Undistortion and Accumulation** for refining point cloud data, **Frame Transformation** to align data with the coordinate system, and **Visualization** for a comprehensive graphical representation of LiDAR data.
+The HeLiPR-Pointcloud-Toolbox excels with three core functionalities: 
+
+- **Undistortion and Accumulation** for refining point cloud data
+
+- **Frame Transformation** to align data with the coordinate system
+
+- **Visualization** for a comprehensive graphical representation of LiDAR data.
 
 ## Files and Functions
 - **`python/transformINStoLiDAR.py`**: Transforms INS data to the LiDAR frame, aiding in trajectory creation and undistortion.
