@@ -6,14 +6,26 @@ The HeLiPR Pointcloud Toolbox is a sophisticated software suite tailored for pro
 - For the HeLiPR dataset, visit: [HeLiPR Dataset Site](https://sites.google.com/view/heliprdataset)
 - For ROS message usage from the HeLiPR dataset, refer to: [HeLiPR File Player Repository](https://github.com/minwoo0611/helipr_file_player)
 
+<p align="center">
+  <img src="image/accumulation.png" alt="Accumulation" width="30%" />
+  <img src="image/trajectory.png" alt="Trajectory" width="30%" />
+  <img src="image/visualizer.png" alt="Visualizer" width="30%" />
+</p>
+
+The HeLiPR-Pointcloud-Toolbox excels with three core functionalities: **Undistortion and Accumulation** for refining point cloud data, **Frame Transformation** to align data with the coordinate system, and **Visualization** for a comprehensive graphical representation of LiDAR data.
+
 ## Files and Functions
-- **`transformINStoLiDAR.py`**: Transforms INS data to the LiDAR frame, aiding in trajectory creation and undistortion.
+- **`python/transformINStoLiDAR.py`**: Transforms INS data to the LiDAR frame, aiding in trajectory creation and undistortion.
   - **Input**: CSV file with latitude, longitude, altitude data (Inertial_data.csv from HeLiPR dataset).
   - **Output**: Text file with trajectory data in LiDAR frame.
+  
+- **`python/binVisualizer.py`**: Visualize the bin file using open3d.
+  - **Input**: bin file from HeLiPR dataset.
+  - **Output**: visualize the 3D pointcloud via open3d.
 
 - **`src/PointCloudProcessor.cpp`**: Processes point clouds from LiDAR data.
   - **Function**: Converts bin data to undistorted point clouds, accumulates them based on user-defined thresholds.
-  - **Input**: Bin files from specific LiDAR and trajectory file from `transformINStoLiDAR.py`.
+  - **Input**: Bin files from specific LiDAR and trajectory file from `python/transformINStoLiDAR.py`.
   - **Output**: Undistorted and accumulated point clouds.
 
 ## Features
@@ -25,8 +37,26 @@ The HeLiPR Pointcloud Toolbox is a sophisticated software suite tailored for pro
 - **Trajectory Interpolation**: Accurately interpolates trajectory data for precise point cloud mapping.
 - **Visual Progress Tracking**: Includes a progress bar and visualizer for processing stage monitoring.
 
+
+For a README file, the instructions should be clear, concise, and well-structured. Here's how you can rewrite the usage instructions for the HeLiPR-Pointcloud-Toolbox in a README-friendly format:
+
+---
+
+## Initial Setup
+
+**Buiild and Compile**: 
+Clone and compile the HeLiPR-Pointcloud-Toolbox repository using git.
+```bash
+git clone https://github.com/minwoo0611/HeLiPR-Pointcloud-Toolbox
+cd HeLiPR-Pointcloud-Toolbox
+mkdir build && cd build
+cmake ..
+make
+```
+
 ## Usage
-1. **Create Trajectory**: Execute `transformINStoLiDAR.py` to transform INS trajectory data to each LiDAR frame.
+0. **Visualize Individual Scans**: To visualize each scan from various LiDAR sensors, use the `python/binVisualizer.py` script.
+1. **Create Trajectory**: Execute `python/transformINStoLiDAR.py` to transform INS trajectory data to each LiDAR frame.
 2. **Compilation and Execution**: Compile and run the PointCloudProcessor C++ code.
 3. **Set Parameters**: Input paths to `.bin` files, trajectory file, and specify LiDAR type and other parameters.
 4. **Data Processing**: Processes the input data, undistorts point clouds, and accumulates them based on set criteria.
@@ -35,12 +65,12 @@ The HeLiPR Pointcloud Toolbox is a sophisticated software suite tailored for pro
 ## Dependencies
 - `Eigen`: For advanced mathematical operations, particularly with vectors and quaternions.
 - `PCL (Point Cloud Library)`: Crucial for point cloud processing and file management.
-- `Open3D`: Utilized in `transformINStoLiDAR.py` for trajectory visualization.
+- `Open3D`: Utilized in `python/*.py` for trajectory visualization.
 
 ## Notes
 - Ensure all dependencies are properly installed and configured.
 - Verify the compatibility of the tool with your LiDAR model and data format.
-- The trajectory file is crucial for accurate undistortion; ensure its format aligns with the expectations of `transformINStoLiDAR.py`.
+- The trajectory file is crucial for accurate undistortion; ensure its format aligns with the expectations of `python/transformINStoLiDAR.py`.
 
 ## License and Citation
 - When using the dataset or code, please cite our paper:
