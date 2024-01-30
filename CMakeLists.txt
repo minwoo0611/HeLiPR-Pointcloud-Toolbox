@@ -6,21 +6,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Find required packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  pcl_ros
-  pcl_conversions
-  sensor_msgs
-)
+find_package(catkin REQUIRED COMPONENTS roscpp pcl_ros pcl_conversions sensor_msgs)
 find_package(PCL 1.8 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP QUIET)
+find_package(yaml-cpp REQUIRED) 
 
 # Include directories
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${YAML_CPP_INCLUDE_DIR} 
   include
 )
 
@@ -36,13 +33,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(PCL_DIR "/usr/lib/x86_64-linux-gnu/cmake/pcl")
 
 # Source files
-set(SOURCE_FILES
-  src/pointSaver.cpp
-  src/visualizer.cpp
-  src/PointCloudProcessor.cpp
-  src/utility.cpp
-  src/BsplineSE3.cpp
-)
+set(SOURCE_FILES src/pointSaver.cpp src/visualizer.cpp src/PointCloudProcessor.cpp src/utility.cpp src/BsplineSE3.cpp)
 
 # Add executable
 add_executable(helipr_tool ${SOURCE_FILES})
@@ -52,5 +43,5 @@ target_link_libraries(helipr_tool
   ${catkin_LIBRARIES} 
   ${PCL_LIBRARIES} 
   ${EIGEN3_LIBRARIES}
+  ${YAML_CPP_LIBRARIES} 
 )
-

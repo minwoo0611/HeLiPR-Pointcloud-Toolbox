@@ -18,7 +18,7 @@ bool isInFOV(double x, double y, double z)
     double phi = std::atan2(z, std::sqrt(x * x + y * y)); // Elevation angle
 
     // Check if within FOV
-    return std::abs(theta) <= halfFovX && std::abs(phi) <= halfFovY;
+    return std::abs(theta) <= halfFovX && phi <= halfFovY && phi >= -25 * M_PI / 180.0;
 }
 
 float euclidean_distance(Point3D p1, Point3D p2)

@@ -37,9 +37,12 @@ public:
     int distanceThreshold = 10;  // saved pointcloud distanceThreshold (m) (default: 10, >= 0)
     int numIntervals = 1000;     // number of intervals for interpolation (default: 1000, > 1)
     int accumulatedSize = 20;    // number of pointclouds to accumulate before processing (default: 20, > 1)
+    int accumulatedStep = 1;     // number of pointclouds to skip before accumulating (default: 1, >= 1)
     bool downSampleFlag = true;  // downsample pointclouds before processing (default: true)
     float downSampleSize = 0.4f; // downsample size (m) (default: 0.4f)
     bool undistortFlag = true;   // undistort pointclouds before processing (default: true)
+    bool cropFlag = true;        // crop pointclouds before processing (default: true)
+    float cropSize = 100.0f;      // crop size (m) (default: 100.0f)
 
     void gatherInput();
     void displayBanner();

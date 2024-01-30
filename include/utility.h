@@ -5,6 +5,7 @@
 #include <pcl/point_types.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/crop_box.h>
 #include <pcl/conversions.h>
 #include <pcl_ros/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -24,6 +25,7 @@
 #include <iomanip>
 #include <cstdlib>
 #include <chrono>
+#include <yaml-cpp/yaml.h>
 
 const std::string green = "\033[32m";  // Green text
 const std::string red = "\033[31m";    // Red text

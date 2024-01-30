@@ -75,106 +75,90 @@ void PointCloudProcessor::displayBanner()
 
 void PointCloudProcessor::gatherInput()
 {
-  binPath = visualizer.getInput(cyan + "Enter the path to the directory containing the .bin files (end with folder/): " + reset);
-  while (!std::filesystem::exists(binPath) || binPath.substr(binPath.size() - 1) != "/")
+  // config from yaml file
+  YAML::Node config = YAML::LoadFile("../config/config.yaml");
+  binPath = config["Path"]["binPath"].as<std::string>();
+  trajPath = config["Path"]["trajPath"].as<std::string>();
+  savePath = config["Path"]["savePath"].as<std::string>();
+  undistortFlag = config["Undistort"]["undistortFlag"].as<bool>();
+  numIntervals = config["Undistort"]["numIntervals"].as<int>();
+  downSampleFlag = config["Save"]["downSampleFlag"].as<bool>();
+  downSampleSize = config["Save"]["downSampleSize"].as<float>();
+  cropFlag = config["Save"]["cropFlag"].as<bool>();
+  cropSize = config["Save"]["cropSize"].as<float>();
+  int LiDARTypeInt = config["Save"]["LiDAR"].as<int>();
+  distanceThreshold = config["Save"]["distanceThreshold"].as<int>();
+  accumulatedSize = config["Save"]["accumulatedSize"].as<int>();
+  accumulatedStep = config["Save"]["accumulatedStep"].as<int>();
+
+  // checking input
+  if (!std::filesystem::exists(binPath) || binPath.substr(binPath.size() - 1) != "/")
   {
-    std::cout << red << "The path does not exist or the path is not end with folder/. Please try again." << reset << std::endl;
-    binPath = visualizer.getInput(cyan + "Enter the path to the directory containing the .bin files (end with folder/): " + reset);
+    std::cout << red << "The path does not exist or the path is not end with folder/. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  trajPath = visualizer.getInput(cyan + "Enter the path to the trajectory file: " + reset);
-  while (!std::filesystem::exists(trajPath) || trajPath.substr(trajPath.size() - 4) != ".txt")
+  if (!std::filesystem::exists(trajPath) || trajPath.substr(trajPath.size() - 4) != ".txt")
   {
-    std::cout << red << "The path does not exist or the file is not txt. Please try again." << reset << std::endl;
-    trajPath = visualizer.getInput(cyan + "Enter the path to the trajectory file: " + reset);
+    std::cout << red << "The path does not exist or the file is not txt. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  bool pathCreated = false;
-  while (!pathCreated)
+  if (!std::filesystem::exists(savePath))
   {
-    savePath = visualizer.getInput(cyan + "Enter the path to the directory to save the processed point clouds (end with '/'): " + reset);
-    // Check if the path ends with '/'
-    if (savePath.back() != '/')
+    std::cout << yellow << "The path does not exist. Creating a new directory." << reset << std::endl;
+    // Attempt to create the directory
+    if (!std::filesystem::create_directory(savePath))
     {
-      std::cout << red << "The path must end with '/'. Please try again." << reset << std::endl;
-    }
-    else
-    {
-      // Check if the path exists
-      if (!std::filesystem::exists(savePath))
-      {
-        std::cout << yellow << "The path does not exist. Creating a new directory." << reset << std::endl;
-        // Attempt to create the directory
-        if (!std::filesystem::create_directory(savePath))
-        {
-          std::cout << red << "Failed to create the directory. Please try again." << reset << std::endl;
-        }
-        else
-        {
-          pathCreated = true; // Directory created successfully
-        }
-      }
-      else
-      {
-        pathCreated = true; // Path already exists
-      }
+      std::cout << red << "Failed to create the directory. Please check config.yaml." << reset << std::endl;
+      exit(0);
     }
   }
 
-  int lidarInput = visualizer.getInput<int>(cyan + "Enter the LiDAR type (0: Ouster, 1: Velodyne, 2: Livox, 3: Aeva): " + reset, 0);
-  LiDAR = static_cast<LiDARType>(lidarInput);
-  while (LiDAR < 0 || LiDAR > 3)
+  if (numIntervals <= 1)
   {
-    std::cout << red << "Invalid LiDAR type. Please try again." << reset << std::endl;
-    lidarInput = visualizer.getInput<int>(cyan + "Enter the LiDAR type (0: Ouster, 1: Velodyne, 2: Livox, 3: Aeva): " + reset, 0);
-    LiDAR = static_cast<LiDARType>(lidarInput);
+    std::cout << red << "numIntervals should be greater than 1. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  distanceThreshold = visualizer.getInput<float>(cyan + "Enter the distance threshold (m) (default: 10, >= 0): " + reset, 10.0f);
-  while (distanceThreshold < 0)
+  if (accumulatedSize <= 1)
   {
-    std::cout << red << "Invalid distance threshold. Please try again." << reset << std::endl;
-    distanceThreshold = visualizer.getInput<float>(cyan + "Enter the distance threshold (m) (default: 10, >= 0): " + reset, 10.0f);
+    std::cout << red << "accumulatedSize should be greater than 1. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  numIntervals = visualizer.getInput<int>(cyan + "Enter the number of intervals for interpolation (default: 1000, >= 1): " + reset, 1000);
-  while (numIntervals < 1)
+  if (accumulatedStep < 1)
   {
-    std::cout << red << "Invalid number of intervals. Please try again." << reset << std::endl;
-    numIntervals = visualizer.getInput<int>(cyan + "Enter the number of intervals for interpolation (default: 1000, >= 1): " + reset, 1000);
+    std::cout << red << "accumulatedStep should be greater than or equal to 1. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  accumulatedSize = visualizer.getInput<int>(cyan + "Enter the number of point clouds to accumulate before processing (default: 20, >= 1): " + reset, 20);
-  while (accumulatedSize < 1)
+  if (downSampleFlag && downSampleSize <= 0)
   {
-    std::cout << red << "Invalid accumulated size. Please try again." << reset << std::endl;
-    accumulatedSize = visualizer.getInput<int>(cyan + "Enter the number of point clouds to accumulate before processing (default: 20, >= 1): " + reset, 20);
+    std::cout << red << "downSampleSize should be greater than 0. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  downSampleFlag = visualizer.getInput<bool>(cyan + "Enter the downsample flag (0: false, 1: true) (default: 1): " + reset, true);
-  while (downSampleFlag < 0 || downSampleFlag > 1)
+  if (cropFlag && cropSize <= 0)
   {
-    std::cout << red << "Invalid downsample flag. Please try again." << reset << std::endl;
-    downSampleFlag = visualizer.getInput<bool>(cyan + "Enter the downsample flag (0: false, 1: true) (default: 1): " + reset, true);
+    std::cout << red << "cropSize should be greater than 0. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  if (downSampleFlag)
+  if (distanceThreshold < 0)
   {
-    downSampleSize = visualizer.getInput<float>(cyan + "Enter the downsample size (m) (default: 0.4): " + reset, 0.4f);
-    while (downSampleSize < 0)
-    {
-      std::cout << red << "Invalid downsample size. Please try again." << reset << std::endl;
-      downSampleSize = visualizer.getInput<float>(cyan + "Enter the downsample size (m) (default: 0.4): " + reset, 0.4f);
-    }
+    std::cout << red << "distanceThreshold should be greater than or equal to 0. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
 
-  undistortFlag = visualizer.getInput<bool>(cyan + "Enter the undistort flag (0: false, 1: true) (default: 1): " + reset, true);
-  while (undistortFlag < 0 || undistortFlag > 1)
+  if (LiDARTypeInt < 0 || LiDARTypeInt > 3)
   {
-    std::cout << red << "Invalid undistort flag. Please try again." << reset << std::endl;
-    undistortFlag = visualizer.getInput<bool>(cyan + "Enter the undistort flag (0: false, 1: true) (default: 1): " + reset, true);
+    std::cout << red << "LiDAR should be 0, 1, 2, or 3. Please check config.yaml." << reset << std::endl;
+    exit(0);
   }
-}
+
+  LiDAR = static_cast<LiDARType>(LiDARTypeInt);
+} 
 
 void PointCloudProcessor::displayInput()
 {
@@ -192,10 +176,14 @@ void PointCloudProcessor::displayInput()
   std::cout << green << std::left << std::setw(width) << "Distance Threshold:" << distanceThreshold << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Num Intervals:" << numIntervals << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Accumulated Size:" << accumulatedSize << reset << std::endl;
+  std::cout << green << std::left << std::setw(width) << "Accumulated Step:" << accumulatedStep << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Downsample Flag:" << (downSampleFlag ? "True" : "False") << reset << std::endl;
   if (downSampleFlag)
     std::cout << green << std::left << std::setw(width) << "Downsample Size:" << downSampleSize << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Undistort Flag:" << (undistortFlag ? "True" : "False") << reset << std::endl;
+  std::cout << green << std::left << std::setw(width) << "Crop Flag:" << (cropFlag ? "True" : "False") << reset << std::endl;
+  if (cropFlag)
+    std::cout << green << std::left << std::setw(width) << "Crop Size:" << cropSize << reset << std::endl;
   std::cout << std::endl;
 }
 
@@ -295,7 +283,9 @@ void PointCloudProcessor::readBinFile(const std::string &filename, pcl::PointClo
     file.read(reinterpret_cast<char *>(&point.tag), sizeof(uint8_t));
     file.read(reinterpret_cast<char *>(&point.line), sizeof(uint8_t));
     file.read(reinterpret_cast<char *>(&point.offset_time), sizeof(uint32_t));
-    cloud.push_back(point);
+
+    if (isInFOV(point.x, point.y, point.z))
+      cloud.push_back(point);
   }
   file.close();
 }
@@ -344,6 +334,10 @@ void PointCloudProcessor::accumulateScans(std::vector<pcl::PointCloud<T>> &vecCl
           point.x = transformedPoint(0);
           point.y = transformedPoint(1);
           point.z = transformedPoint(2);
+
+          if (cropFlag && (point.x * point.x + point.y * point.y + point.z * point.z) > cropSize * cropSize)
+            continue;
+            
           accumulatedCloud.push_back(point);
         }
       }
@@ -360,11 +354,15 @@ void PointCloudProcessor::accumulateScans(std::vector<pcl::PointCloud<T>> &vecCl
       else
         pcdWriter.writeBinary(savePath + padZeros(keyIndex - accumulatedSize, 6) + ".pcd", accumulatedCloud);
     }
-    vecCloud.erase(vecCloud.begin());
-    scanQuat.erase(scanQuat.begin());
-    scanTrans.erase(scanTrans.begin());
-    scanTimestamps.erase(scanTimestamps.begin());
-    scanPoints.erase(scanPoints.begin());
+
+    for (int i = 0; i < accumulatedStep; i++)
+    {
+      vecCloud.erase(vecCloud.begin());
+      scanQuat.erase(scanQuat.begin());
+      scanTrans.erase(scanTrans.begin());
+      scanTimestamps.erase(scanTimestamps.begin());
+      scanPoints.erase(scanPoints.begin());
+    }
   }
 }
 
@@ -398,6 +396,25 @@ void PointCloudProcessor::processFile(const std::string &filename)
   }
 
   bool success_field = bsplineSE3.get_pose(timeStart, qStart, pStart);
+  
+  if(!success_field) // only for initial point
+  {
+    int idx = 0;
+    for (int i = 0; i < trajPoints.size() - 1; i++)
+    {
+      if (timeStart >= trajPoints[i](0) && timeStart <= trajPoints[i + 1](0))
+      {
+        idx = i;
+        break;
+      }
+    }
+    double alpha = (timeStart - trajPoints[idx](0)) / (trajPoints[idx + 1](0) - trajPoints[idx](0));
+    Eigen::Quaterniond q0 = Eigen::Quaterniond(trajPoints[idx](7), trajPoints[idx](4), trajPoints[idx](5), trajPoints[idx](6));
+    Eigen::Quaterniond q1 = Eigen::Quaterniond(trajPoints[idx + 1](7), trajPoints[idx + 1](4), trajPoints[idx + 1](5), trajPoints[idx + 1](6));
+    qStart = q0.slerp(alpha, q1);
+    pStart = (1 - alpha) * trajPoints[idx].block(1, 0, 3, 1) + alpha * trajPoints[idx + 1].block(1, 0, 3, 1);
+
+  }
 
   switch (LiDAR)
   {

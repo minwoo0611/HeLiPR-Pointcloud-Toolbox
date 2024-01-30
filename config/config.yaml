@@ -1,0 +1,19 @@
+Path:
+  binPath: "/HeLiPR_Dataset/KAIST04/LiDAR/Velodyne/"
+  trajPath: "/HeLiPR_Dataset/KAIST04/LiDAR_GT/Velodyne_gt.txt"
+  savePath: "/Accumulate/"
+
+Undistort:
+  numIntervals: 250
+  undistortFlag: True
+
+Save:
+  downSampleFlag: False
+  downSampleSize: 0.1
+  cropFlag: False
+  cropSize: 100 # meter, -100 ~ 100
+  LiDAR: 1 # 0: OUSTER, 1: VELODYNE, 2: LIVOX, 3: AEVA
+  distanceThreshold: 0
+  accumulatedSize: 10
+  accumulatedStep: 10
+
