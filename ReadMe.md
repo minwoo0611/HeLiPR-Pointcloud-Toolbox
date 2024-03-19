@@ -100,8 +100,6 @@ All datasets are copyrighted by SNU RPM Labs and are distributed under the Creat
 - Minwoo Jung (moonshot@snu.ac.kr, SNU RPM Lab)
 - Last Revised: 2023/12/06
 
-When writing a GitHub README for your project, especially when incorporating code or inspiration from another project, it's crucial to both comply with licensing requirements and provide proper attribution. Given that you're using code from the STD project hosted on GitHub and your datasets are licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 License, here's a suggested structure and content for your README file. Adjust the content as necessary to fit the specifics of your project and the portions of the STD code you're utilizing.
-
 ### Attribution for "down_sampling_voxel"
 
 Part of our codebase, specifically the "down_sampling_voxel" function, is adapted from the [STD project](https://github.com/hku-mars/STD) hosted on GitHub.
