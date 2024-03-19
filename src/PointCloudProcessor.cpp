@@ -195,7 +195,14 @@ void PointCloudProcessor::displayInput()
   std::cout << green << std::left << std::setw(width) << "Accumulated Step:" << accumulatedStep << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Downsample Flag:" << (downSampleFlag ? "True" : "False") << reset << std::endl;
   if (downSampleFlag)
-    std::cout << green << std::left << std::setw(width) << "Downsample Size:" << downSampleVoxelSize << reset << std::endl;
+  {
+    std::cout << green << std::left << std::setw(width) << "Downsample Voxel Size:" << downSampleVoxelSize << reset << std::endl;
+    std::cout << green << std::left << std::setw(width) << "Downsample Point Size:" << downsamplePointSize << reset << std::endl;
+  }
+  std::cout << green << std::left << std::setw(width) << "Normalize Flag:" << (normalizeFlag ? "True" : "False") << reset << std::endl;
+  std::cout << green << std::left << std::setw(width) << "Save Name:" << saveName << reset << std::endl;
+  std::cout << green << std::left << std::setw(width) << "Save As:" << saveAs << reset << std::endl;
+  
   std::cout << green << std::left << std::setw(width) << "Undistort Flag:" << (undistortFlag ? "True" : "False") << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Crop Flag:" << (cropFlag ? "True" : "False") << reset << std::endl;
   if (cropFlag)
