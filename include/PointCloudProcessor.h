@@ -32,6 +32,7 @@ public:
     std::string binPath;
     std::string savePath;
     std::string trajPath;
+    std::string saveFile;
 
     LiDARType LiDAR = OUSTER;    // Ouster, Velodyne, Livox, Aeva (Same as the folder name)
     int distanceThreshold = 10;  // saved pointcloud distanceThreshold (m) (default: 10, >= 0)
@@ -39,7 +40,11 @@ public:
     int accumulatedSize = 20;    // number of pointclouds to accumulate before processing (default: 20, > 1)
     int accumulatedStep = 1;     // number of pointclouds to skip before accumulating (default: 1, >= 1)
     bool downSampleFlag = true;  // downsample pointclouds before processing (default: true)
-    float downSampleSize = 0.4f; // downsample size (m) (default: 0.4f)
+    float downSampleVoxelSize = 0.4f; // downsample size (m) (default: 0.4f)
+    int downsamplePointSize: 8192;   // downsample point size (default: 8192, > 0)
+    bool normalizeFlag = true;   // normalize pointclouds  (default: true)
+    std::string saveAs = "bin";       // save as bin or pcd (default: bin)
+    std::string saveName = "Index";   // save name (default: Index)
     bool undistortFlag = true;   // undistort pointclouds before processing (default: true)
     bool cropFlag = true;        // crop pointclouds before processing (default: true)
     float cropSize = 100.0f;      // crop size (m) (default: 100.0f)
@@ -63,7 +68,7 @@ public:
 
     template <class T>
     void accumulateScans(std::vector<pcl::PointCloud<T>> &vecCloud, Point3D &lastPoint);
-
+    
     void readBinFile(const std::string &filename, pcl::PointCloud<OusterPointXYZIRT> &cloud);
     void readBinFile(const std::string &filename, pcl::PointCloud<PointXYZIRT> &cloud);
     void readBinFile(const std::string &filename, pcl::PointCloud<LivoxPointXYZI> &cloud);

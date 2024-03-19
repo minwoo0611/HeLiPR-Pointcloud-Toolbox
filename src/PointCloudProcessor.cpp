@@ -83,7 +83,11 @@ void PointCloudProcessor::gatherInput()
   undistortFlag = config["Undistort"]["undistortFlag"].as<bool>();
   numIntervals = config["Undistort"]["numIntervals"].as<int>();
   downSampleFlag = config["Save"]["downSampleFlag"].as<bool>();
-  downSampleSize = config["Save"]["downSampleSize"].as<float>();
+  downSampleVoxelSize = config["Save"]["downSampleVoxelSize"].as<float>();
+  downsamplePointSize = config["Save"]["downsamplePointSize"].as<int>();
+  normalizeFlag = config["Save"]["normalizeFlag"].as<bool>();
+  saveName = config["Save"]["saveName"].as<std::string>();
+  saveAs = config["Save"]["saveAs"].as<std::string>();
   cropFlag = config["Save"]["cropFlag"].as<bool>();
   cropSize = config["Save"]["cropSize"].as<float>();
   int LiDARTypeInt = config["Save"]["LiDAR"].as<int>();
@@ -121,9 +125,9 @@ void PointCloudProcessor::gatherInput()
     exit(0);
   }
 
-  if (accumulatedSize <= 1)
+  if (accumulatedSize <= 0)
   {
-    std::cout << red << "accumulatedSize should be greater than 1. Please check config.yaml." << reset << std::endl;
+    std::cout << red << "accumulatedSize should be greater than 0. Please check config.yaml." << reset << std::endl;
     exit(0);
   }
 
@@ -133,9 +137,21 @@ void PointCloudProcessor::gatherInput()
     exit(0);
   }
 
-  if (downSampleFlag && downSampleSize <= 0)
+  if (downSampleFlag && downSampleVoxelSize <= 0 && downsamplePointSize <= 0)
   {
-    std::cout << red << "downSampleSize should be greater than 0. Please check config.yaml." << reset << std::endl;
+    std::cout << red << "downSampleVoxelSize and downsamplePointSize should be greater than 0. Please check config.yaml." << reset << std::endl;
+    exit(0);
+  }
+
+  if (saveName != "Index" && saveName != "Timestamp")
+  {
+    std::cout << red << "saveName should be Index or Timestamp. Please check config.yaml." << reset << std::endl;
+    exit(0);
+  }
+
+  if (saveAs != "bin" && saveAs != "pcd")
+  {
+    std::cout << red << "saveAs should be bin or pcd. Please check config.yaml." << reset << std::endl;
     exit(0);
   }
 
@@ -158,7 +174,7 @@ void PointCloudProcessor::gatherInput()
   }
 
   LiDAR = static_cast<LiDARType>(LiDARTypeInt);
-} 
+}
 
 void PointCloudProcessor::displayInput()
 {
@@ -179,7 +195,7 @@ void PointCloudProcessor::displayInput()
   std::cout << green << std::left << std::setw(width) << "Accumulated Step:" << accumulatedStep << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Downsample Flag:" << (downSampleFlag ? "True" : "False") << reset << std::endl;
   if (downSampleFlag)
-    std::cout << green << std::left << std::setw(width) << "Downsample Size:" << downSampleSize << reset << std::endl;
+    std::cout << green << std::left << std::setw(width) << "Downsample Size:" << downSampleVoxelSize << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Undistort Flag:" << (undistortFlag ? "True" : "False") << reset << std::endl;
   std::cout << green << std::left << std::setw(width) << "Crop Flag:" << (cropFlag ? "True" : "False") << reset << std::endl;
   if (cropFlag)
@@ -279,7 +295,12 @@ void PointCloudProcessor::readBinFile(const std::string &filename, pcl::PointClo
     file.read(reinterpret_cast<char *>(&point.x), sizeof(float));
     file.read(reinterpret_cast<char *>(&point.y), sizeof(float));
     file.read(reinterpret_cast<char *>(&point.z), sizeof(float));
-    file.read(reinterpret_cast<char *>(&point.reflectivity), sizeof(uint8_t));
+    uint8_t intensity;
+    file.read(reinterpret_cast<char *>(&intensity), sizeof(uint8_t));
+    // uint8_t to float intensity
+    point.intensity = intensity;
+
+    // file.read(reinterpret_cast<char *>(&point.intensity), sizeof(uint8_t));
     file.read(reinterpret_cast<char *>(&point.tag), sizeof(uint8_t));
     file.read(reinterpret_cast<char *>(&point.line), sizeof(uint8_t));
     file.read(reinterpret_cast<char *>(&point.offset_time), sizeof(uint32_t));
@@ -301,7 +322,7 @@ void PointCloudProcessor::readBinFile(const std::string &filename, pcl::PointClo
     file.read(reinterpret_cast<char *>(&point.x), sizeof(float));
     file.read(reinterpret_cast<char *>(&point.y), sizeof(float));
     file.read(reinterpret_cast<char *>(&point.z), sizeof(float));
-    file.read(reinterpret_cast<char *>(&point.reflectivity), sizeof(float));
+    file.read(reinterpret_cast<char *>(&point.intensity), sizeof(float));
     file.read(reinterpret_cast<char *>(&point.velocity), sizeof(float));
     file.read(reinterpret_cast<char *>(&point.time_offset_ns), sizeof(int32_t));
     file.read(reinterpret_cast<char *>(&point.line_index), sizeof(uint8_t));
@@ -317,11 +338,11 @@ void PointCloudProcessor::accumulateScans(std::vector<pcl::PointCloud<T>> &vecCl
 {
   pcl::PCDWriter pcdWriter;
   pcl::PointCloud<T> accumulatedCloud;
+
   if (vecCloud.size() == accumulatedSize)
   {
     if (euclidean_distance(lastPoint, scanPoints[0]) > distanceThreshold)
     {
-      visualizer.progressBar(keyIndex, numBins, padZeros(keyIndex - accumulatedSize, 6) + ".pcd", true);
       lastPoint = scanPoints[0];
       for (int i = 0; i < accumulatedSize; i++)
       {
@@ -337,22 +358,46 @@ void PointCloudProcessor::accumulateScans(std::vector<pcl::PointCloud<T>> &vecCl
 
           if (cropFlag && (point.x * point.x + point.y * point.y + point.z * point.z) > cropSize * cropSize)
             continue;
-            
+
           accumulatedCloud.push_back(point);
         }
       }
+
+      pcl::PointCloud<pcl::PointXYZI>::Ptr sampledCloud(new pcl::PointCloud<pcl::PointXYZI>);
+      copyPointCloud(accumulatedCloud, *sampledCloud);
+
       if (downSampleFlag)
       {
-        pcl::VoxelGrid<pcl::PointXYZI> sor;
-        pcl::PointCloud<pcl::PointXYZI>::Ptr sampledCloud(new pcl::PointCloud<pcl::PointXYZI>);
-        copyPointCloud(accumulatedCloud, *sampledCloud);
-        sor.setInputCloud(sampledCloud);
-        sor.setLeafSize(downSampleSize, downSampleSize, downSampleSize);
-        sor.filter(*sampledCloud);
-        pcdWriter.writeBinary(savePath + padZeros(keyIndex - accumulatedSize, 6) + ".pcd", *sampledCloud);
+        if (downsamplePointSize > 0)
+          downsample_to_target_size(*sampledCloud, downsamplePointSize);
+        else
+          down_sampling_voxel(*sampledCloud, downSampleVoxelSize);
       }
-      else
-        pcdWriter.writeBinary(savePath + padZeros(keyIndex - accumulatedSize, 6) + ".pcd", accumulatedCloud);
+
+      if (normalizeFlag)
+        normalizePointCloud(sampledCloud, cropSize);
+
+      if (saveName == "Index")
+        saveFile = savePath + std::to_string(keyIndex - accumulatedSize);
+      else if (saveName == "Timestamp")
+        saveFile = savePath + scanTimestamps[0];
+
+      visualizer.progressBar(keyIndex, numBins, saveFile + "." + saveAs, true);
+      if (saveAs == "bin")
+      {
+        std::ofstream file;
+        file.open(saveFile + ".bin", std::ios::out | std::ios::binary);
+        for (auto &point : sampledCloud->points)
+        {
+          file.write(reinterpret_cast<const char *>(&point.x), sizeof(float));
+          file.write(reinterpret_cast<const char *>(&point.y), sizeof(float));
+          file.write(reinterpret_cast<const char *>(&point.z), sizeof(float));
+          file.write(reinterpret_cast<const char *>(&point.intensity), sizeof(float));
+        }
+        file.close();
+      }
+      else if (saveAs == "pcd")
+        pcdWriter.writeBinary(saveFile + ".pcd", *sampledCloud);
     }
 
     for (int i = 0; i < accumulatedStep; i++)
@@ -396,8 +441,8 @@ void PointCloudProcessor::processFile(const std::string &filename)
   }
 
   bool success_field = bsplineSE3.get_pose(timeStart, qStart, pStart);
-  
-  if(!success_field) // only for initial point
+
+  if (!success_field) // only for initial point
   {
     int idx = 0;
     for (int i = 0; i < trajPoints.size() - 1; i++)
@@ -413,7 +458,6 @@ void PointCloudProcessor::processFile(const std::string &filename)
     Eigen::Quaterniond q1 = Eigen::Quaterniond(trajPoints[idx + 1](7), trajPoints[idx + 1](4), trajPoints[idx + 1](5), trajPoints[idx + 1](6));
     qStart = q0.slerp(alpha, q1);
     pStart = (1 - alpha) * trajPoints[idx].block(1, 0, 3, 1) + alpha * trajPoints[idx + 1].block(1, 0, 3, 1);
-
   }
 
   switch (LiDAR)
@@ -437,13 +481,13 @@ void PointCloudProcessor::processFile(const std::string &filename)
   currPoint.y = pStart(1);
   currPoint.z = pStart(2);
 
-  scanPoints.push_back(currPoint);
-  scanQuat.push_back(qStart);
-  scanTrans.push_back(pStart);
-  scanTimestamps.push_back(timestampStr);
-
   if (success_field)
   {
+    scanPoints.push_back(currPoint);
+    scanQuat.push_back(qStart);
+    scanTrans.push_back(pStart);
+    scanTimestamps.push_back(timestampStr);
+
     qStart = qStart.conjugate();
     double timeEnd = timeStart + 0.105;
     double dt = (timeEnd - timeStart) / numIntervals;
@@ -564,6 +608,7 @@ void PointCloudProcessor::loadTrajectory()
 {
   std::string line;
   std::ifstream file(trajPath);
+
   while (std::getline(file, line))
   {
     std::istringstream iss(line);
