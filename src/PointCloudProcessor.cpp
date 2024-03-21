@@ -35,7 +35,7 @@ void PointCloudProcessor::displayBanner()
                                 "1. Bin files from HeLiPR should be needed.\n"
                                 "2. trajectory file is tum form made by transformINStoLiDAR.py.";
 
-  const std::string maintainerInfo = "Maintainer: Minwoo Jung (moonshot@snu.ac.kr, SNU RPM Lab), Revised: 2023/12/06";
+  const std::string maintainerInfo = "Maintainer: Minwoo Jung (moonshot@snu.ac.kr, SNU RPM Lab), Revised: 2024/03/19";
 
   int titlePadding = (bannerWidth - title.length()) / 2;
   titlePadding = titlePadding < 0 ? 0 : titlePadding; // Ensure no negative padding
