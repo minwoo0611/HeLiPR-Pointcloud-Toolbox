@@ -98,7 +98,7 @@ All datasets are copyrighted by SNU RPM Labs and are distributed under the Creat
 
 ## Maintainer
 - Minwoo Jung (moonshot@snu.ac.kr, SNU RPM Lab)
-- Last Revised: 2023/12/06
+- Last Revised: 2024/03/19
 
 ### Attribution for "down_sampling_voxel"
 
