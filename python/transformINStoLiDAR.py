@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import open3d as o3d
+import csv
 from scipy.spatial.transform import Rotation as R
 from pyproj import Proj, transform
 
@@ -21,8 +22,9 @@ def latlon2local(lat, lon, alt, origin):
     return xEast, yNorth, zUp
 
 def processTrajectory(inputPath, outputPath, typeLiDAR):
-    # Read the CSV file
+    # Read the CSV file and load timestamps separately as strings
     latlonheight = pd.read_csv(inputPath, header=None)
+    timestamps = latlonheight.iloc[:, 0].astype(str).to_numpy()  # Read timestamps as strings
     latlonheight = latlonheight.iloc[:, :10].to_numpy()
 
     # Convert latitude, longitude, height to local coordinates
@@ -38,9 +40,10 @@ def processTrajectory(inputPath, outputPath, typeLiDAR):
     # Assuming 'ZYX' convention (yaw-pitch-roll)
     quat = R.from_euler('zyx', rpyRad).as_quat()
 
-    latlonheight = np.column_stack((latlonheight[:, 0], x, y, z, quat))
+    # Combine data into one array with timestamps
+    trajLiDAR = np.column_stack((timestamps, x, y, z, quat))
 
-    # # Define LiDAR matrices (R_IL, R_IA, R_IO, R_IV) and R_IN
+    # Define LiDAR matrices (R_IL, R_IA, R_IO, R_IV) and R_IN
     R_IL = np.array([[0.999260281307309, 0.0383884500761334, 0.00228409771914936, 0.205400000000000],
                      [-0.0383981303207532, 0.999253021123844, 0.00435699010113986, -0.352800000000000],
                      [-0.00211513344942227, -0.00444147223600340, 0.999987899694225, 0.0706000000000000],
@@ -48,17 +51,15 @@ def processTrajectory(inputPath, outputPath, typeLiDAR):
     R_IA = np.array([[0.998593404866819, 0.0471428768856460, -0.0242643960451897, 0.133700000000000],
                      [-0.0476188752386917, 0.998676624578879, -0.0194278727795602, 0.355700000000000],
                      [0.0233163993252583, 0.0205559888762785, 0.999516781671935, 0.221900000000000],
-                     [0, 0, 0, 1]])  # Replace with actual R_IA matrix
-
+                     [0, 0, 0, 1]])
     R_IO = np.array([[0.999715495593027, 0.0223448061210468, -0.00834490926264448, -0.417000000000000],
                      [-0.0224514077723064, 0.999664614804883, -0.0129070599303583, -0.00300000000000000],
                      [0.00805370475188661, 0.0130907427756056, 0.999881878170293, 0.299600000000000],
-                     [0, 0, 0, 1]])  # Replace with actual R_IO matrix
-
+                     [0, 0, 0, 1]])
     R_IV = np.array([[0.999995760375673, 0.000773891425480788, -0.00280719125478291, -1.37200000000000],
                      [-0.000825966811080870, 0.999826715354752, -0.0185972320992637, 0.0668000000000000],
                      [0.00279231257318289, 0.0185994719007949, 0.999823115673720, 0.0297000000000000],
-                     [0, 0, 0, 1]])  # Replace with actual R_IV matrix
+                     [0, 0, 0, 1]])
 
     # Select the appropriate LiDAR matrix
     if typeLiDAR == "Livox":
@@ -73,34 +74,39 @@ def processTrajectory(inputPath, outputPath, typeLiDAR):
         raise ValueError("Invalid LiDAR type")
 
     R_IN = np.array([[0.0110181061714567, -0.999760525916693, -0.0189213279101856, -0.0136388586688681],
-                    [0.999915259583709, 0.0108843018002586, 0.00715997514944445, 0.163678520730871],
-                    [-0.00695231049069956, -0.0189986948218794, 0.999795674892162, -0.00743152306072198],
-                    [0, 0, 0, 1]])
+                     [0.999915259583709, 0.0108843018002586, 0.00715997514944445, 0.163678520730871],
+                     [-0.00695231049069956, -0.0189986948218794, 0.999795674892162, -0.00743152306072198],
+                     [0, 0, 0, 1]])
 
-    trajLiDAR = latlonheight
     meshArrayTrajLiDAR = []
 
     for i in range(len(trajLiDAR)):
+        # Skip the transformation for the first entry if needed
+        if i == 0:
+            continue
+
         # Select the quaternion components qx, qy, qz, qw
-        quat = trajLiDAR[i, 4:8]
+        quat = trajLiDAR[i, 4:8].astype(float)
         rot = R.from_quat(quat).as_matrix()
 
         # Apply transformations
-        trajLiDAR[i, 1:4] += (rot @ (R_IN[:3, :3] @ LiDAR[:3, 3] + R_IN[:3, 3])).T
+        trajLiDAR[i, 1:4] = trajLiDAR[i, 1:4].astype(float) + (rot @ (R_IN[:3, :3] @ LiDAR[:3, 3] + R_IN[:3, 3])).T
         rotLiDAR = rot @ R_IN[:3, :3] @ LiDAR[:3, :3]
         trajLiDAR[i, 4:8] = R.from_matrix(rotLiDAR).as_quat()
 
-        if(i % 20 == 0):
-            mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size = 2)
+        if i % 20 == 0:
+            mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2)
             pose = np.identity(4)
-            pose[:3, 3] = trajLiDAR[i, 1:4]
+            pose[:3, 3] = trajLiDAR[i, 1:4].astype(float)
             pose[:3, :3] = rotLiDAR
             meshArrayTrajLiDAR.append(mesh.transform(pose))
 
     # Save to output file
-    fmt = ['%.0f', '%.20f', '%.20f', '%.20f', '%.20f', '%.20f', '%.20f', '%.20f']
-    np.savetxt(outputPath, trajLiDAR, fmt=fmt, delimiter=' ')
-    
+    with open(outputPath, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=' ')
+        for row in trajLiDAR:
+            writer.writerow(row)
+
     print("Saved to " + outputPath)
     print("Visualizing the trajectory...")
     print("Press 'q' to exit")
